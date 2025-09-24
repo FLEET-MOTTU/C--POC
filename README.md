@@ -1,130 +1,313 @@
-# C--POC V1
+# Mottu Fleet API — C# (Pátio)
 
+> API RESTful em **.NET 8** para gestão de **motos**, **tags BLE** e **funcionários** do pátio.  
+> Foco em boas práticas REST, **paginação**, **HATEOAS**, documentação **Swagger/OpenAPI** e **EF Core** com Oracle.
 
-## Descrição do Projeto
+<p align="left">
+  <img src="https://img.shields.io/badge/.NET-8.0-5C2D91?logo=.net&logoColor=white" />
+  <img src="https://img.shields.io/badge/Swagger-OpenAPI-green?logo=swagger" />
+  <img src="https://img.shields.io/badge/EF%20Core-Oracle-orange" />
+</p>
 
-Esta API RESTful, trata-se de um Proof of Concept desenvolvida em C# com ASP.NET Core 8 e Entity Framework Core, é um componente do sistema de gerenciamento de pátios da empresa Mottu. Seu objetivo principal é gerenciar o cadastro e o estado das motocicletas, além de processar eventos de IoT simulados para rastreamento dentro dos pátios.
+---
 
-A API implementa um CRUD completo para a entidade `Moto` (incluindo sua `TagBle`(Tag Bluetooth Low Energy) associada) e está preparada para receber interações de tags BLE via um endpoint dedicado, que será alimentado por um simulador Python de eventos IoT. A persistência dos dados é feita em um banco de dados Oracle.
+## 📌 Sumário
+- [Integrantes](#integrantes)
+- [Resumo do Projeto](#resumo-do-projeto)
+- [Requisitos Atendidos](#requisitos-atendidos)
+- [Arquitetura & Tecnologias](#arquitetura--tecnologias)
+- [Entidades do Domínio](#entidades-do-domínio)
+- [Paginação & HATEOAS](#paginação--hateoas)
+- [Como Executar](#como-executar)
+- [Configuração (Connection String)](#configuração-connection-string)
+- [Migrations (EF Core)](#migrations-ef-core)
+- [Documentação Swagger](#documentação-swagger)
+- [Endpoints & Exemplos de Payloads](#endpoints--exemplos-de-payloads)
+- [Estrutura do Repositório](#estrutura-do-repositório)
+- [Códigos de Status & Erros](#códigos-de-status--erros)
+- [Testes](#testes)
 
-**Principais Funcionalidades**
-* CRUD completo para Motos e suas Tags BLE associadas.
-* Validação de dados de entrada e regras de negócio.
-* Geração e aplicação de migrations do banco de dados via EF Core.
-* Documentação da API com Swagger.
-* Endpoint para recebimento de eventos simulados de IoT (interação de tag).
+---
 
-**Tecnologias Utilizadas:**
-* C# e ASP.NET Core 8
-* Entity Framework Core 8
-* Oracle Database (conectado via EF Core)
-* Docker e Docker Compose para ambiente de desenvolvimento e deploy
-* Swagger (Swashbuckle) para documentação da API
-* Princípios SOLID e Clean Architecture
+## 👥 Integrantes
+- **Amanda Mesquita Cirino da Silva** — RM559177  
+- **Beatriz Ferreira Cruz** — RM555698  
+- **Journey Tiago Lopes Ferreira** — RM556071  
 
+---
 
-## Estrutura do Projeto (Visão Geral)
+## 🧭 Resumo do Projeto
+Esta API expõe operações de CRUD para três entidades principais (**Moto**, **TagBle**, **Funcionario**), com:
+- **Paginação** nas listagens (`page`, `pageSize`) e metadados em `X-Pagination`.
+- **HATEOAS** por recurso (links de `self`, `update`, `delete`).
+- **Swagger/OpenAPI** com exemplos e mapeamento de enums como string.
+- Persistência via **Entity Framework Core** com **Oracle**.
 
-* **`Controllers/`**: Contém os API Controllers que lidam com as requisições HTTP e respostas.
-* **`Services/`**: Contém a lógica de negócio e orquestração das operações.
-* **`DTOs/`**: Define os objetos usados para transferir dados entre o cliente e a API, e para validação.
-    * **`ValidationAttributes/`**: Contém atributos de validação customizados.
-* **`Entities/`**: Contém as classes que representam as tabelas do banco de dados (modelos de domínio para EF Core).
-    * **`Enums/`**: Contém as enumerações usadas pelas entidades e DTOs.
-* **`Data/`**: Contém a classe `AppDbContext` do Entity Framework Core.
-* **`Exceptions/`**: Contém as classes de exceção personalizadas.
-* **`Middleware/`**: Contém middlewares customizados, como o `GlobalExceptionHandlerMiddleware`.
-* **`Migrations/`**: Contém os arquivos de migration gerados pelo EF Core.
+---
 
+## ✅ Requisitos Atendidos
+- **3 entidades principais** (Moto, TagBle, Funcionario).  
+- **CRUD completo** para as 3 entidades com boas práticas REST.  
+- **Paginação** e **HATEOAS** nas listagens.  
+- **Swagger** com descrição de endpoints, modelos e exemplos.  
+- **README** com instruções de execução e exemplos de uso.
 
-## Pré-requisitos
+---
 
-Para rodar esta aplicação localmente usando Docker, você precisará de:
+## 🏗️ Arquitetura & Tecnologias
+- **Camadas**: Controllers ➜ Services ➜ Data (EF Core) ➜ Entities/DTOs  
+- **Principais pacotes**:
+  - `Swashbuckle.AspNetCore` (Swagger)
+  - `Oracle.EntityFrameworkCore` (EF Core provider)
+- **Middlewares**: `GlobalExceptionHandlerMiddleware` (padroniza respostas de erro)
+- **Padrões**:
+  - DTOs para entrada/saída
+  - `CreatedAtRoute` em POST
+  - `ProducesResponseType` e XML docs nos endpoints
 
-1.  **Docker Desktop**
-2.  **Docker Compose**
-3.  Acesso a uma instância do **Oracle Database** e as respectivas credenciais (usuário, senha, data source string).
+---
 
-Para rodar sem usar o Docker, execute na pasta raiz do projeto:
-1. cd Csharp.Api
-2. dotnet user-secrets init
-3. dotnet user-secrets set "ConnectionStrings:OracleConnection" "Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle.fiap.com.br)(PORT=1521)))(CONNECT_DATA=(SID=ORCL)));User ID=SEU_ID_ORACLE;Password=SUA_SENHA_ORACLE"
-4. dotnet run
+## 🗂️ Entidades do Domínio
+- **Moto**: `Id`, `Placa`, `Modelo` (enum), `StatusMoto` (enum), `DataCriacaoRegistro`, `Tag` (opcional)  
+- **TagBle**: `Id`, `CodigoUnicoTag` (único), `NivelBateria`  
+- **Funcionario**: `Id`, `Nome`, `Email` (único), `Cargo`
 
-## Configuração do Ambiente Local e Inicialização
+> Enums serializados como **string** no JSON (configurado em `Program.cs`).
 
-**1. Clonar o Repositório:**
+---
 
-```sh
-git clone https://github.com/FLEET-MOTTU/C--POC
-cd Csharp.Api
+## 🔁 Paginação & HATEOAS
+- **Query params**: `page` (default: 1), `pageSize` (default: 10), `q` (busca livre)  
+- **Header**: `X-Pagination` com `{ TotalItems, Page, PageSize, TotalPages }`  
+- **Links HATEOAS**: cada item retorna `links: [ { rel, href, method } ]`
+
+Exemplo de `X-Pagination`:
+```json
+{"TotalItems": 42, "Page": 1, "PageSize": 10, "TotalPages": 4}
 ```
 
-**2. Configure a Conexão com o Banco de Dados Oracle:**
-* Na pasta raiz do projeto (onde está o `docker-compose.yml`), siga as instruções do arquivo `docker-compose.override.yml.example`.
- 
- **3. Construa as Imagens e Inicie os Containers:**
-* No seu terminal, na pasta raiz do projeto, execute o comando:
+---
 
-```sh
-docker compose up --build
+## ▶️ Como Executar
+### 1) Requisitos
+- .NET 8 SDK  
+- Banco Oracle acessível (ou container local)  
+- Connection string configurada (veja abaixo)
+
+### 2) Restaurar, migrar e subir
+```bash
+dotnet restore
+dotnet build
+
+# aplica migrations no banco configurado
+dotnet ef database update
+
+# executa a API
+dotnet run --project Csharp.Api
 ```
 
-* **Aplicação de Migrations:** Ao iniciar pela primeira vez (ou se houver novas migrations commitadas no repositório que ainda não foram aplicadas ao seu banco), a API tentará aplicar automaticamente as migrations pendentes no banco de dados Oracle. Acompanhe os logs do container da API para verificar.
-* Após a inicialização, a API estará acessível em `http://localhost:8080`.
+Acesse o Swagger em: **http://localhost:5000/swagger**  
+> A porta pode variar; verifique o console ao iniciar.
 
-**4. Acesse a Documentação Swagger:**
-* `http://localhost:8080/swagger`
+---
 
+## 🔧 Configuração (Connection String)
+A aplicação busca a string **`OracleConnection`** em `appsettings.json` (ou variáveis de ambiente).
 
-## Gerenciamento de Migrations do Banco de Dados (Entity Framework Core)
-
-Caso hajam alterações no modelo de dados C# (Entidades ou `AppDbContext`) que precisam ser refletidas no esquema do banco de dados:
-
-**1. Crie uma Nova Migration:**
-* No seu terminal, na pasta raiz do projeto (onde está o `docker-compose.yml`), rode:
-
-```sh       
-docker-compose run --rm ef-tools sh -c "dotnet restore && dotnet ef migrations add NomeDescritivoParaSuaMudanca --verbose"
+Exemplo:
+```json
+{
+  "ConnectionStrings": {
+    "OracleConnection": "User Id=USR;Password=SENHA;Data Source=HOST:1521/ORCLPDB1"
+  }
+}
 ```
 
-* Substitua `NomeDescritivoParaSuaMudanca` por um nome que descreva a alteração.
-* Novos arquivos de migration serão gerados na pasta `Csharp.Api/Migrations/`.
+Via variável de ambiente (recomendado em produção):
+```bash
+# Windows
+setx ConnectionStrings__OracleConnection "User Id=USR;Password=SENHA;Data Source=HOST:1521/ORCLPDB1"
 
-**2. Aplicação da Nova Migration:**
-* Da próxima vez que você ou outro desenvolvedor rodar `docker compose up --build`, a API aplicará essa nova migration automaticamente ao banco de dados (devido ao `dbContext.Database.Migrate();` no `Program.cs`). Acompanhe os logs do container para verificar se as migrations foram aplicadas com sucesso.
-* Após a inicialização, a API estará acessível em `http://localhost:8080`.
+# Linux/macOS (exemplo de sessão atual)
+export ConnectionStrings__OracleConnection="User Id=USR;Password=SENHA;Data Source=HOST:1521/ORCLPDB1"
+```
 
-**3. Acesse a Documentação Swagger:**
-* `http://localhost:8080/swagger`
+---
 
+## 🧱 Migrations (EF Core)
+Gerar e aplicar migrations:
+```bash
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+```
 
-## Endpoints da API (Rotas Principais)
+> As migrations também são aplicadas automaticamente no startup (`Database.Migrate()`).
 
-A documentação completa e interativa de todos os endpoints, incluindo schemas de request/response e exemplos, está disponível via Swagger UI em /swagger quando a API está rodando (ex: `http://localhost:8080/swagger`).
+---
 
+## 📚 Documentação Swagger
+- Habilitado em `/swagger`  
+- Lê **XML docs** gerado no build  
+- Enums exibidos como **string** com lista de valores  
+- Header **`X-Pagination`** documentado nos GETs (OperationFilter)
 
-## Testando a API
+---
 
-**CRUD de motos**
+## 🔌 Endpoints & Exemplos de Payloads
 
-Os endpoits relacionados ao CRUD de motos podem ser testados através do Swagger ou via ferramentas de teste de API, como o Postman (seguem instruções para teste via Postman):
-* Copie todo o conteúdo co arquivo JSON 'Mottu_CSharp_API.postman_collection' localizado na raiz do projeto
-* Abra o Postman.
-* Cole o contúdo do JSON 'Mottu_CSharp_API.postman_collection' na aba "Raw text", clique em "Continue" e depois em "Import".
-* Uma nova coleção chamada "Mottu C# API - Pátio" aparecerá no Postman.
-* IMPORTANTE: Você precisará configurar a variável de coleção baseUrl.
-    * Clique na coleção "Mottu C# API - Pátio".
-    * Vá na aba "Variables".
-    * Edite a variável baseUrl e no campo "CURRENT VALUE" coloque: http://localhost:8080 (ou a porta que a API C# estiver usando localmente).
+### Motos
+**Listar (com paginação):**
+```
+GET /api/motos?page=1&pageSize=10&status=Disponivel&placa=ABC
+```
 
+**Criar:**
+```http
+POST /api/motos
+Content-Type: application/json
 
-**Simulação IoT**
+{
+  "placa": "ABC1D23",
+  "modelo": "CG160",            // TipoModeloMoto (exemplo)
+  "statusMoto": "Disponivel"    // TipoStatusMoto
+}
+```
 
-Para testar a funcionalidade de rastreamento e atualização de status baseada em eventos de IoT (como detecção de tags por beacons), esta API C# espera receber eventos em seu endpoint `/api/iot-events/tag-interaction`.
-Um **simulador Python/FastAPI dedicado** foi desenvolvido para gerar e enviar esses eventos. Para instruções detalhadas sobre como configurar, rodar e usar o simulador Python, por favor, consulte o README no seguinte repositório: https://github.com/FLEET-MOTTU/PY-SIM
+**Atualizar:**
+```http
+PUT /api/motos/{id}
+Content-Type: application/json
 
-Basicamente, você precisará:
-1.  Rodar o simulador Python em um container Docker.
-2.  Configurar o simulador para apontar para esta API C# (que estará rodando em `http://localhost:8080`).
-3.  Usar o endpoint do simulador Python para enviar eventos de "interação de tag", que serão processados por esta API C#.
+{
+  "placa": "ABC1D23",
+  "modelo": "CG160",
+  "statusMoto": "Manutencao"
+}
+```
+
+**Remover:**
+```
+DELETE /api/motos/{id}
+```
+
+---
+
+### Tags BLE
+**Listar:**
+```
+GET /api/tags?page=1&pageSize=10&q=TAG
+```
+
+**Criar:**
+```http
+POST /api/tags
+Content-Type: application/json
+
+{
+  "codigoUnicoTag": "TAG-0001-AAA",
+  "nivelBateria": 92
+}
+```
+
+**Atualizar:**
+```http
+PUT /api/tags/{id}
+Content-Type: application/json
+
+{
+  "codigoUnicoTag": "TAG-0001-AAA",
+  "nivelBateria": 80
+}
+```
+
+**Remover:**
+```
+DELETE /api/tags/{id}
+```
+
+---
+
+### Funcionários
+**Listar:**
+```
+GET /api/funcionarios?page=1&pageSize=10&q=beatriz
+```
+
+**Criar:**
+```http
+POST /api/funcionarios
+Content-Type: application/json
+
+{
+  "nome": "Beatriz Ferreira Cruz",
+  "email": "beatriz@example.com",
+  "cargo": "Analista"
+}
+```
+
+**Atualizar:**
+```http
+PUT /api/funcionarios/{id}
+Content-Type: application/json
+
+{
+  "nome": "Beatriz F. Cruz",
+  "email": "beatriz@example.com",
+  "cargo": "Especialista"
+}
+```
+
+**Remover:**
+```
+DELETE /api/funcionarios/{id}
+```
+
+---
+
+## 🗃️ Estrutura do Repositório
+```
+Csharp.Api/
+ ├─ Controllers/
+ │   ├─ MotosController.cs
+ │   ├─ TagsController.cs
+ │   └─ FuncionariosController.cs
+ ├─ Data/
+ │   └─ AppDbContext.cs
+ ├─ DTOs/
+ │   ├─ MotoDtos.cs
+ │   ├─ TagBleDtos.cs
+ │   ├─ FuncionarioDtos.cs
+ │   └─ Pagination.cs           # PagedResult, LinkDto, HateoasBuilder
+ ├─ Entities/
+ │   ├─ Moto.cs
+ │   ├─ TagBle.cs
+ │   └─ Funcionario.cs
+ ├─ Middleware/
+ │   └─ GlobalExceptionHandlerMiddleware.cs
+ ├─ Services/
+ │   ├─ IMotoService.cs / MotoService.cs
+ │   ├─ ITagBleService.cs / TagBleService.cs
+ │   └─ IFuncionarioService.cs / FuncionarioService.cs
+ ├─ Swagger/
+ │   └─ PaginationHeaderOperationFilter.cs
+ ├─ Migrations/
+ ├─ Program.cs
+ └─ README.md
+```
+
+---
+
+## 🧾 Códigos de Status & Erros
+- `200 OK` – consultas/atualizações  
+- `201 Created` – criação (com `Location` e corpo retornado)  
+- `204 No Content` – deleção  
+- `400 Bad Request` – validações  
+- `404 Not Found` – recurso inexistente  
+- `500 Internal Server Error` – erros não tratados  
+
+> Erros seguem `ProblemDetails` via `GlobalExceptionHandlerMiddleware`.
+
+---
+
+## 🧪 Testes
+Opcional para o escopo desta entrega. Sugestão: incluir projeto `xUnit` com testes de serviço e controller básico em uma próxima iteração.
