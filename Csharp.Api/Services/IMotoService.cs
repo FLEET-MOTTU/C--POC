@@ -4,11 +4,11 @@ namespace Csharp.Api.Services
 {
     public interface IMotoService
     {
+        Task<PagedResult<MotoViewDto>> GetAllMotosAsync(string? status, string? placa, int page, int pageSize);
         Task<MotoViewDto?> GetMotoByIdAsync(Guid id);
-        Task<IEnumerable<MotoViewDto>> GetAllMotosAsync(string? status, string? placa);
-        Task<MotoViewDto> CreateMotoAsync(CreateMotoDto createMotoDto);
-        Task<MotoViewDto> UpdateMotoAsync(Guid id, UpdateMotoDto updateMotoDto);
+
+        Task<MotoViewDto> CreateMotoAsync(CreateMotoDto dto);
+        Task<MotoViewDto> UpdateMotoAsync(Guid id, UpdateMotoDto dto);
         Task<bool> DeleteMotoAsync(Guid id);
-        Task<MotoViewDto?> GetMotoByPlacaAsync(string placa);
     }
 }

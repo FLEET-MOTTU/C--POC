@@ -5,19 +5,28 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Csharp.Api</RootNamespace>
+
+    <!-- Gera o arquivo XML de documentação para o Swagger -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Força o caminho do XML (ajuda o IncludeXmlComments encontrá-lo no output) -->
+    <DocumentationFile>bin\$(Configuration)\net8.0\Csharp.Api.xml</DocumentationFile>
+
+    <!-- Suprime warnings de docs ausentes em tipos públicos -->
     <NoWarn>$(NoWarn);1591</NoWarn>
+
     <UserSecretsId>13a72822-c312-451b-8bfb-bf08c05916e6</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Swagger / OpenAPI -->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
+    <!-- EF Core + Ferramentas -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Oracle.EntityFrameworkCore" Version="8.23.40" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
   </ItemGroup>
 
 </Project>
