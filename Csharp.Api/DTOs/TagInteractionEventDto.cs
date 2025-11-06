@@ -3,25 +3,22 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Csharp.Api.DTOs
 {
-
+    /// <summary>Evento recebido via API (simulada) de interação da tag com um beacon.</summary>
     public class TagInteractionEventDto
     {
-
-        [Required(ErrorMessage = "O código único da tag é obrigatório.")]
-        [StringLength(50, ErrorMessage = "O código único da tag deve ter no máximo 50 caracteres.")]
+        [Required, StringLength(50)]
         public string CodigoUnicoTag { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "O ID do beacon detectado é obrigatório.")]
-        [StringLength(100, ErrorMessage = "O ID do beacon deve ter no máximo 100 caracteres.")]
+        [Required, StringLength(100)]
         public string BeaconIdDetectado { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "O timestamp do evento é obrigatório.")]
-        public DateTime Timestamp { get; set; } 
+        [Required]
+        public DateTime Timestamp { get; set; }
 
-        [Range(0, 100, ErrorMessage = "Nível da bateria deve ser entre 0 e 100, se informado.")]
+        [Range(0, 100)]
         public int? NivelBateria { get; set; }
-        
-        [StringLength(50, ErrorMessage = "O tipo do evento deve ter no máximo 50 caracteres.")]
+
+        [StringLength(50)]
         public string? TipoEvento { get; set; }
     }
 }
